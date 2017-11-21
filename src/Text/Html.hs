@@ -5,7 +5,6 @@ module Text.Html
   ) where
 
 
-import qualified Data.Text          as T
 import           Text.Html.Internal
 
 

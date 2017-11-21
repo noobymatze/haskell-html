@@ -1,44 +1,92 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Text.Html.Render where
+module Text.Html.Render
+  ( toText
+  , toLazyText
+  , toBuilder
+  ) where
 
 
 import           Data.Monoid
-import qualified Data.Text          as T
-import qualified Text.Html.Internal as Node
+import qualified Data.Text              as T
+import qualified Data.Text.Lazy         as LT
+import qualified Data.Text.Lazy.Builder as LTB
+import qualified Text.Html.Internal     as Node
 
 
 
--- RENDER
+-- RENDER API
 
 
-html5 :: Node.Node -> T.Text
-html5 node =
-  "<!DOCTYPE html>\n\n" <> renderNode 0 node
+toText :: Node.Node -> T.Text
+toText =
+  LT.toStrict . LTB.toLazyText . toBuilder
 
 
-renderNode :: Int -> Node.Node -> T.Text
-renderNode indent node =
+toLazyText ::  Node.Node -> LT.Text
+toLazyText =
+  LTB.toLazyText . toBuilder
+
+
+toBuilder :: Node.Node -> LTB.Builder
+toBuilder node =
+  "<!DOCTYPE html>" <> render node
+
+
+
+-- ACTUAL RENDERING
+
+
+render :: Node.Node -> LTB.Builder
+render node =
   case node of
     Node.Text value ->
-      value
+      escapeMarkupEntities value
+
+    Node.RawText value ->
+      LTB.fromText value
 
     Node.Node _namespace True name attributes _ ->
-      mconcat
-      [ "<" <> name <> if null attributes then "" else " "
-      , mconcat (fmap renderAttribute attributes)
-      , "/>"
-      ]
+      "<" <> LTB.fromText name
+          <> mconcat (fmap ((" " <>) . renderAttribute) attributes)
+          <> "/>"
 
     Node.Node _namespace False name attributes children ->
-      mconcat
-      [ "\n" <> T.replicate indent " " <> "<" <> name <> if null attributes then "" else " "
-      , mconcat (fmap renderAttribute attributes)
-      , ">"
-      , mconcat (fmap (renderNode (indent + 2)) children)
-      , T.replicate indent " " <> "</" <> name <> ">\n"
-      ]
+      "<" <> LTB.fromText name
+          <> mconcat (fmap ((" " <>) . renderAttribute) attributes)
+          <> ">"
+          <> mconcat (fmap render children)
+          <> "</" <> LTB.fromText name <> ">"
 
 
-renderAttribute :: Node.Attribute -> T.Text
+renderAttribute :: Node.Attribute -> LTB.Builder
 renderAttribute (Node.Attribute key value) =
-  key <> "=\"" <> value <> "\""
+  escapeMarkupEntities key <> "=\"" <> escapeMarkupEntities value <> "\""
+
+
+
+-- HELPERS
+
+-- This is blatantly stolen from
+-- https://github.com/jaspervdj/blaze-markup/blob/master/src/Text/Blaze/Renderer/Text.hs
+escapeMarkupEntities :: T.Text -> LTB.Builder
+escapeMarkupEntities = T.foldr escape mempty
+  where
+    escape c result =
+      case c of
+        '<' ->
+          LTB.fromText "&lt;" <> result
+
+        '>' ->
+          LTB.fromText "&gt;" <> result
+
+        '&' ->
+          LTB.fromText "&amp;"  <> result
+
+        '"' ->
+          LTB.fromText "&quot;" <> result
+
+        '\'' ->
+          LTB.fromText "&#39;" <> result
+
+        x ->
+          LTB.singleton x <> result

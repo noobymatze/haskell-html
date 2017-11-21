@@ -3,7 +3,9 @@ module Text.Html.Internal
   , node
   , nodeNS
   , text
+  , dangerouslyUnescapedText
   , voidNode
+
   , Attribute (..)
   , attribute
   ) where
@@ -18,6 +20,7 @@ import qualified Data.Text as T
 
 data Node
   = Text T.Text
+  | RawText T.Text
   | Node
     { namespace  :: Maybe T.Text
     , isVoid     :: Bool
@@ -43,10 +46,14 @@ voidNode name attributes =
   Node Nothing True name attributes []
 
 
-
 text :: T.Text -> Node
 text =
   Text
+
+
+dangerouslyUnescapedText :: T.Text -> Node
+dangerouslyUnescapedText =
+  RawText
 
 
 

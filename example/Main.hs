@@ -2,10 +2,13 @@
 module Main where
 
 
-import qualified Data.Text.IO     as T
-import           Prelude          hiding (head)
-import           Text.Html        (Html, body, div, h1, head, html, text, title)
-import qualified Text.Html.Render as Render
+import qualified Data.Text            as T
+import qualified Data.Text.IO         as T
+import           Prelude              hiding (head)
+import           Text.Html            (Html, body, div, h1, head, html, text,
+                                       title)
+import qualified Text.Html.Attributes as A
+import qualified Text.Html.Render     as Render
 
 
 document :: Html
@@ -18,7 +21,7 @@ document =
         ]
     , body
         []
-        [ h1 [] [ text "Hello World!" ]
+        [ h1 [ A.class_ "Hello World!" ] [ text "Hello World!" ]
         ]
     ]
 
@@ -26,4 +29,5 @@ document =
 
 main :: IO ()
 main =
-  T.putStrLn (Render.html5 document)
+  T.putStrLn (Render.toText document)
+

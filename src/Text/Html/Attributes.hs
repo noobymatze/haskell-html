@@ -2,6 +2,7 @@
 module Text.Html.Attributes where
 
 
+import           Data.Monoid        ((<>))
 import qualified Data.Text          as T
 import           Text.Html.Internal
 
@@ -790,9 +791,14 @@ step =
   attribute "step"
 
 
-style :: T.Text -> Attribute
-style =
-  attribute "style"
+style :: [(T.Text, T.Text)] -> Attribute
+style properties =
+  let
+    rendered =
+      T.intercalate ";" $
+        fmap (\(k, v) -> k <> ":" <> v) properties
+  in
+    attribute "style" rendered
 
 
 subject :: T.Text -> Attribute
